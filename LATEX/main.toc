@@ -1,0 +1,15 @@
+\contentsline {section}{\numberline {1}Introduction}{2}{section.1}%
+\contentsline {section}{\numberline {2}Content}{3}{section.2}%
+\contentsline {subsection}{\numberline {2.1}HARA-Analysis}{3}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Previous System Architecture}{4}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Limitations with Previous System Architecture}{5}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}Fault-Tree Analysis - Gottlieb}{5}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.5}CARE-Analysis}{6}{subsection.2.5}%
+\contentsline {subsection}{\numberline {2.6}Cause Tree -- Jan}{7}{subsection.2.6}%
+\contentsline {subsection}{\numberline {2.7}Improved Safety Concept - Lennard}{8}{subsection.2.7}%
+\contentsline {subsection}{\numberline {2.8}CARE Analysis of Improved Safety Concept - Gottlieb}{8}{subsection.2.8}%
+\contentsline {subsection}{\numberline {2.9}Evidence of Efficacy -- Gottlieb}{8}{subsection.2.9}%
+\contentsline {subsection}{\numberline {2.10}Limitations \& Countermeasures -- Jan}{9}{subsection.2.10}%
+\contentsline {subsection}{\numberline {2.11}Business Case}{11}{subsection.2.11}%
+\contentsline {subsection}{\numberline {2.12}Safety Demo -- Jonathan}{11}{subsection.2.12}%
+\contentsline {section}{\numberline {3}Appendix}{12}{section.3}%

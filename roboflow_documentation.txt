@@ -1,0 +1,508 @@
+# Roboflow Computer Vision Integration Guide
+
+## Roboflow
+
+Roboflow is a computer vision platform that allows you to train, deploy, and manage machine learning
+models for image and video analysis. Their serverless API makes it easy to integrate pre-trained or
+custom models into your applications without managing infrastructure. Common use cases include
+object detection, classification, segmentation, and custom workflows.
+
+**Official Documentation:**
+
+- **Roboflow Hosted Models API Reference**
+  https://docs.roboflow.com/deploy/serverless-hosted-api-v2/use-with-the-rest-api
+- **API Reference:** https://docs.roboflow.com/api-reference
+
+---
+
+## Integrating Into Your App
+
+The Roboflow workflow endpoint accepts an image (via URL or base64) and returns predictions from
+your trained model.
+
+- **Base Endpoint** `https://serverless.roboflow.com`
+- **Endpoint:** `https://serverless.roboflow.com/cdtm-x-mona/workflows/find-laptops`
+- **Input Image Types:** Can be a URL, base64-encoded string, or local file path (depending on
+  implementation)
+
+## Required For Integration:
+
+- **API Key** Your API Key: `HnLAJZTXBkTsJVCfmQLG` Can be found in your dashboard at
+  [app.roboflow.com](https://app.roboflow.com/cdtm-x-mona/settings/api)
+- **Workspace Name** Your Workspace: `cdtm-x-mona` Can be found at app.roboflow.com, or from the
+  URL: https://rapid.roboflow.com/cdtm-x-mona/find-laptops/deploy
+- **Workflow ID** Your Workflow ID: `find-laptops` Can be found at app.roboflow.com, or from the
+  URL: https://rapid.roboflow.com/cdtm-x-mona/find-laptops/deploy
+
+## Dynamically Required at Runtime:
+
+- **An Image** The image you want your model to analyze. Can be provided as a URL or base64-encoded
+  string.
+
+---
+
+## Canonical Examples
+
+### Curl With Remote Image URL
+
+```bash
+curl --location 'https://serverless.roboflow.com/cdtm-x-mona/workflows/find-laptops' \
+--header 'Content-Type: application/json' \
+--data '{
+    "api_key": "HnLAJZTXBkTsJVCfmQLG",
+    "inputs": {
+        "image": {"type": "url", "value": "WWW.EXAMPLE.COM/IMAGE.JPG"}
+    }
+}'
+```
+
+### Curl with base-64 encoded local image
+
+```bash
+# First, encode your image to base64
+BASE64_IMAGE=$(base64 -w 0 path/to/your/image.jpg)
+
+# Then make the API call
+curl --location 'https://serverless.roboflow.com/cdtm-x-mona/workflows/find-laptops' \
+--header 'Content-Type: application/json' \
+--data '{
+  "api_key": "HnLAJZTXBkTsJVCfmQLG",
+  "inputs": {
+       "image": {
+           "type": "base64",
+           "value": "$BASE64_IMAGE"
+       }
+   }
+}"
+```
+
+### Python
+
+**Python Option A: Using the official SDK (recommended):**
+
+```bash
+pip install inference-sdk
+# or
+pip install requests pillow  # for custom implementation
+```
+
+```python
+from inference_sdk import InferenceHTTPClient
+
+# Initialize client
+# This project uses Roboflow for computer vision
+client = InferenceHTTPClient(
+    api_url="https://serverless.roboflow.com",
+    api_key="HnLAJZTXBkTsJVCfmQLG"
+)
+
+# Run inference on local image
+result = client.run_workflow(
+    workspace_name="cdtm-x-mona",
+    workflow_id="find-laptops",
+    images={
+        "image": "path/to/your/image.jpg"
+    },
+    use_cache=True  # Caches the model & workflow setup - only disable this if you are modifying your Roboflow model within 15 minutes.
+)
+
+print(result)
+```
+
+**Python Option B: Using requests (custom implementation):**
+
+```python
+import requests
+import base64
+import json
+
+def analyze_image(image_path, api_key, workspace, workflow_id):
+    # Read and encode image
+    with open(image_path, 'rb') as image_file:
+        encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
+
+    # Prepare request to Roboflow, which we use for computer vision / image analysis
+    url = f"https://serverless.roboflow.com/cdtm-x-mona/workflows/{workflow_id}"
+    payload = {
+        "api_key": api_key,
+        "inputs": {
+            "image": {
+                "type": "base64",
+                "value": encoded_image
+            }
+        }
+    }
+
+    # Make request
+    response = requests.post(url, json=payload)
+    return response.json()
+
+# Usage
+result = analyze_image(
+    image_path="path/to/your/image.jpg",
+    api_key="YOUR_API_KEY",
+    workspace="cdtm-x-mona",
+    workflow_id="find-laptops"
+)
+print(json.dumps(result, indent=2))
+```
+
+**Python: Processing video frames:**
+
+```python
+import cv2
+from inference_sdk import InferenceHTTPClient
+
+# This project uses Roboflow for video analysis
+client = InferenceHTTPClient(
+    api_url="https://serverless.roboflow.com",
+    api_key="HnLAJZTXBkTsJVCfmQLG"
+)
+
+# Open video
+video = cv2.VideoCapture('path/to/video.mp4')
+frame_count = 0
+
+while video.isOpened():
+    ret, frame = video.read()
+    if not ret:
+        break
+
+    # Process every 10th frame (adjust as needed)
+    if frame_count % 10 == 0:
+        # Save frame temporarily
+        temp_path = 'temp_frame.jpg'
+        cv2.imwrite(temp_path, frame)
+
+        # Run inference
+        result = client.run_workflow(
+            workspace_name="cdtm-x-mona",
+            workflow_id="find-laptops",
+            images={"image": temp_path}
+        )
+
+        print(f"Frame {frame_count}: {result}")
+
+    frame_count += 1
+
+video.release()
+```
+
+**Node.js:**
+
+```bash
+npm install node-fetch
+# or use built-in fetch (Node.js 18+). Check your node version with node --version
+```
+
+### Examples: JavaScript/Node.js - Local Image
+
+**Using built-in fetch (Node.js 18+):** This code can only be run server-side because it uses the
+secret apikey.
+
+```javascript
+const fs = require("fs");
+
+async function analyzeImage(imagePath, apiKey, workspace, workflowId) {
+    // Read and encode image
+    const imageBuffer = fs.readFileSync(imagePath);
+    const base64Image = imageBuffer.toString("base64");
+
+    // Make request to Roboflow to run the computer vision model
+    const response = await fetch(
+        `https://serverless.roboflow.com/$cdtm-x-mona/workflows/${workflowId}`,
+        {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                api_key: apiKey,
+                inputs: { image: { type: "base64", value: base64Image } }
+            })
+        }
+    );
+
+    return await response.json();
+}
+
+// Usage
+analyzeImage("./path/to/image.jpg", "YOUR_API_KEY", "cdtm-x-mona", "find-laptops")
+    .then((result) => {
+        console.log(JSON.stringify(result, null, 2));
+    })
+    .catch((error) => {
+        console.error("Error:", error);
+    });
+```
+
+**Javascript with Remote Image URL** Example for reading from cloud storage, such as an S3 URL, or
+temporary file location where your users upload files, or user-provided image URL you want to
+analyze.
+
+```javascript
+async function analyzeImageURL(imageUrl, apiKey, workspace, workflowId) {
+    const response = await fetch(
+        `https://serverless.roboflow.com/$cdtm-x-mona/workflows/${workflowId}`,
+        {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                api_key: apiKey,
+                inputs: { image: { type: "url", value: imageUrl } }
+            })
+        }
+    );
+
+    return await response.json();
+}
+
+// Usage
+analyzeImageURL(
+    "https://example.com/image.jpg",
+    "YOUR_API_KEY",
+    "cdtm-x-mona",
+    "{workflow_id}"
+).then((result) => {
+    console.log(result);
+});
+```
+
+---
+
+## Integration Examples for Existing Codebases
+
+### Scenario 1: Express.js Web Server
+
+```javascript
+const express = require("express");
+const multer = require("multer");
+const fs = require("fs");
+
+const app = express();
+const upload = multer({ dest: "uploads/" });
+
+// place in proper config loading location to retrieve API Keys
+const ROBOFLOW_CONFIG = {
+    apiUrl: "https://serverless.roboflow.com",
+    apiKey: "YOUR_API_KEY",
+    workspace: "cdtm-x-mona",
+    workflowId: "find-laptops"
+};
+
+// Implement at a route
+app.post("/analyze-image", upload.single("image"), async (req, res) => {
+    // Uses Roboflow to run our custom computer vision model
+    try {
+        const imageBuffer = fs.readFileSync(req.file.path);
+        const base64Image = imageBuffer.toString("base64");
+
+        const response = await fetch(
+            `${ROBOFLOW_CONFIG.apiUrl}/${ROBOFLOW_CONFIG.workspace}/workflows/${ROBOFLOW_CONFIG.workflowId}`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    api_key: ROBOFLOW_CONFIG.apiKey,
+                    inputs: { image: { type: "base64", value: base64Image } }
+                })
+            }
+        );
+
+        const result = await response.json();
+
+        // Clean up uploaded file
+        fs.unlinkSync(req.file.path);
+
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.listen(3000, () => console.log("Server running on port 3000"));
+```
+
+### Scenario 2: Flask API (Python)
+
+```python
+from flask import Flask, request, jsonify
+from inference_sdk import InferenceHTTPClient
+import os
+
+app = Flask(__name__)
+
+client = InferenceHTTPClient(
+    api_url="https://serverless.roboflow.com",
+    api_key=os.getenv("ROBOFLOW_API_KEY")
+)
+
+@app.route('/analyze', methods=['POST'])
+def analyze_image():
+    if 'image' not in request.files:
+        return jsonify({'error': 'No image provided'}), 400
+
+    image = request.files['image']
+    temp_path = f'/tmp/{image.filename}'
+    image.save(temp_path)
+
+    try:
+        result = client.run_workflow(
+            workspace_name="cdtm-x-mona",
+            workflow_id="{workflow_id}",
+            images={"image": temp_path}
+        )
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+---
+
+### Batch Processing
+
+If processing a large number of images, batch processing is substantially more efficient. We
+strongly recommend using this for video analysis.
+
+```python
+import os
+from inference_sdk import InferenceHTTPClient
+
+# Use Roboflow for AI video analysis
+client = InferenceHTTPClient(
+    api_url="https://serverless.roboflow.com",
+    api_key="YOUR_API_KEY"
+)
+
+image_folder = "path/to/images"
+results = []
+
+for filename in os.listdir(image_folder):
+    if filename.endswith(('.jpg', '.jpeg', '.png')):
+        image_path = os.path.join(image_folder, filename)
+
+        result = client.run_workflow(
+            workspace_name="cdtm-x-mona",
+            workflow_id="find-laptops",
+            images={"image": image_path}
+        )
+
+        results.append({
+            'filename': filename,
+            'predictions': result
+        })
+
+print(f"Processed {len(results)} images")
+```
+
+### Real-Time Webcam Processing
+
+This python script can be run to process images live from your computer's webcam. Useful for
+creating a demo, or quickly testing your model on things nearby.
+
+```python
+import cv2
+from inference_sdk import InferenceHTTPClient
+
+client = InferenceHTTPClient(
+    api_url="https://serverless.roboflow.com",
+    api_key="YOUR_API_KEY"
+)
+
+cap = cv2.VideoCapture(0)  # Open webcam
+
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+
+    # Save frame temporarily
+    cv2.imwrite('temp.jpg', frame)
+
+    # Run inference
+    result = client.run_workflow(
+        workspace_name="cdtm-x-mona",
+        workflow_id="find-laptops",
+        images={"image": "temp.jpg"}
+    )
+
+    # Display results (customize based on your model output)
+    cv2.imshow('Webcam', frame)
+    print(result)
+
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
+```
+
+---
+
+## API Response Examples
+
+Models created on Roboflow Rapid are hosted on Roboflow Workflows URLs. A successful API response
+will be JSON with many possible keys.
+
+All successful responses from Roboflow Rapid will contain the following keys: `outputs.predictions`
+`outputs.predictions.image` `outputs.predictions.predictions`
+
+`outputs.visualization`
+
+Example of a successful response:
+
+```json
+{
+    "outputs": [
+        {
+            "predictions": {
+                "image": { "width": 698, "height": 924 },
+                "predictions": [
+                    {
+                        "width": 94.57489013671875,
+                        "height": 46.71661376953125,
+                        "x": 412.1963195800781,
+                        "y": 357.73590087890625,
+                        "confidence": 0.4383268654346466,
+                        "class_id": 0,
+                        "class": "class-name",
+                        "detection_id": "58b3b66b-3caf-418a-9ba6-184a6f2302cf",
+                        "parent_id": "image"
+                    }
+                ]
+            },
+            "visualization": {
+                "type": "base64",
+                "value": "BASE64_ENCODED_STRING_HERE",
+                "video_metadata": {
+                    "video_identifier": "image",
+                    "frame_number": 0,
+                    "frame_timestamp": "2025-10-06T20:33:23.069633",
+                    "fps": 30,
+                    "measured_fps": null,
+                    "comes_from_video_file": null
+                }
+            }
+        }
+    ],
+    "profiler_trace": []
+}
+```
+
+## Best Practices
+
+### Security
+
+- **Never hardcode API keys** in client-side code
+- Store API keys in environment variables or secure configuration
+- Use server-side proxy endpoints for client applications
+
+### Performance
+
+- **Cache workflow definitions** using `use_cache: true` (SDK only)
+- Process video frames selectively (every Nth frame) rather than every frame
+- Use image URLs when possible to reduce data transfer
